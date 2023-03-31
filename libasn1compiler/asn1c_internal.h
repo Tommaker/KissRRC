@@ -14,6 +14,9 @@
 #include <errno.h>
 #include <assert.h>
 
+#define SUPPORT_PER_ONLY // Only support UPER and delete any UPER unrelated code.
+#define SUPPORT_DEBUG_MODE
+
 #ifdef	HAVE_SYS_STAT_H
 #include <sys/stat.h>		/* for fstat(2) */
 #endif

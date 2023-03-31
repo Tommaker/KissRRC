@@ -44,6 +44,10 @@ static int include_type_to_pdu_collection(arg_t *arg);
 static void pdu_collection_print_unused_types(arg_t *arg);
 static const char *generate_pdu_C_definition(void);
 
+/* Create a directory to place asn1c support lib files */
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 int
 asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 		int argc, int optc, char **argv) {
@@ -52,7 +56,10 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 	asn1p_module_t *mod;
 	FILE *mkf;	/* Makefile.am.sample */
 	int i;
+    char pLibDirName[] = "LIB";
+    int status;
 
+    
 	deps = asn1c_read_file_dependencies(arg, datadir);
 	if(!deps && datadir) {
 		WARNING("Cannot read file-dependencies information "
@@ -104,6 +111,17 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 		}
 	}
 	safe_fprintf(mkf, "\n\n");
+
+    if (access(pLibDirName, F_OK) != -1)
+    {
+        rmdir(pLibDirName);
+    }
+    status = mkdir(pLibDirName, 0755); // 0777 is the permission value for the folder
+    if(status == -1) {
+        printf("Error creating folder!\n");
+        exit(EXIT_FAILURE);
+    }
+    chdir(pLibDirName);
 
 	/*
 	 * Move necessary skeleton files and add them to Makefile.am.sample.
@@ -195,6 +213,7 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 
 	fclose(mkf);
 	safe_fprintf(stderr, "Generated Makefile.am.sample\n");
+    chdir("../");
 
 	return 0;
 }
