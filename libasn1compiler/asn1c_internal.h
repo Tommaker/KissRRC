@@ -15,7 +15,8 @@
 #include <assert.h>
 
 #define SUPPORT_PER_ONLY // Only support UPER and delete any UPER unrelated code.
-#define SUPPORT_DEBUG_MODE
+#define SUPPORT_DEBUG_MODE // Whether wrap string member with macro _ASN1_DEBUG_MODE_ for reduce target object size.
+#define SUPPORT_GEN_TO_SINGLE_FILE // Generate all ASN.1 in one definition to one file.
 
 #ifdef	HAVE_SYS_STAT_H
 #include <sys/stat.h>		/* for fstat(2) */

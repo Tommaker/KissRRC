@@ -10,6 +10,23 @@
 #define symlink(a,b) (errno=ENOSYS, -1)
 #endif
 
+
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+/* Pedantically check fprintf's return value. */
+#define safe_fprintf_single_file fprintf
+#if 0
+static int safe_fprintf_single_file(FILE *fp, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int ret = fprintf(fp, fmt, ap);
+    va_end(ap);
+    assert(ret >= 0);
+    return ret;
+}
+#endif
+
+#endif
+
 /* Pedantically check fprintf's return value. */
 static int safe_fprintf(FILE *fp, const char *fmt, ...) {
     va_list ap;
@@ -40,6 +57,9 @@ static int identical_files(const char *fname1, const char *fname2);
 static int need_to_generate_pdu_collection(arg_t *arg);
 static int generate_pdu_collection_file(arg_t *arg);
 static int generate_preamble(arg_t *, FILE *, int optc, char **argv);
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+static int generate_preamble_with_fprintf(asn1p_expr_t	*expr, FILE *fp, int optc, char **argv);
+#endif
 static int include_type_to_pdu_collection(arg_t *arg);
 static void pdu_collection_print_unused_types(arg_t *arg);
 static const char *generate_pdu_C_definition(void);
@@ -48,6 +68,34 @@ static const char *generate_pdu_C_definition(void);
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+FILE *p_gGenFile_h = NULL;
+FILE *p_gGenFile_c = NULL;
+
+
+char *GenHeaderGuardString(const char *pModuleName)
+{
+    int len;
+    int idx;
+    char *pGuardName = strdup(pModuleName);
+    len = strlen(pGuardName);
+
+    for (idx = 0; idx < len; idx++)
+    {
+        if ('-' == pGuardName[idx])
+        {
+            pGuardName[idx] = '_';
+        }
+        if (islower(pGuardName[idx]))
+        {
+            pGuardName[idx] = toupper(pGuardName[idx]);
+        }
+    }
+    return pGuardName;
+}
+#endif
+
 int
 asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 		int argc, int optc, char **argv) {
@@ -58,6 +106,11 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 	int i;
     char pLibDirName[] = "LIB";
     int status;
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+    asn1p_expr_t *pExpr;
+    int IsModuleValid = 0;
+    char *pHeaderGuard = NULL;
+#endif
 
     
 	deps = asn1c_read_file_dependencies(arg, datadir);
@@ -67,6 +120,42 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 	}
 
 	TQ_FOR(mod, &(arg->asn->modules), mod_next) {
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+        // Generate object file.
+        pExpr = TQ_FIRST(&(mod->members));
+
+        if(asn1_lang_map[pExpr->meta_type]
+                [pExpr->expr_type].type_cb) {
+            IsModuleValid = 1;
+            // Create all in one file:$Module.h and $Module.c
+            p_gGenFile_h = asn1c_construct_file_name(mod->ModuleName, ".h");
+            p_gGenFile_c = asn1c_construct_file_name(mod->ModuleName, ".c");
+
+            // Add File start preamble.
+            generate_preamble_with_fprintf(pExpr, p_gGenFile_h, optc, argv);
+            generate_preamble_with_fprintf(pExpr, p_gGenFile_c, optc, argv);
+
+            // Gen header file protect guard
+            pHeaderGuard = GenHeaderGuardString(mod->ModuleName);
+            // 1. Add header protct guard
+            safe_fprintf_single_file(p_gGenFile_h,
+                    "#ifndef\t_%s_H_\n"
+                    "#define\t_%s_H_\n"
+                    "\n", pHeaderGuard, pHeaderGuard);
+
+            //safe_fprintf_single_file(p_gGenFile_h, "\n");
+
+            // 2. Inlcude a header file to include all ASN.1 lib header.
+            safe_fprintf_single_file(p_gGenFile_h, "#include \"asn1c_support_lib.h\"\n");
+            // 3. Add extern "C" wrapper
+            safe_fprintf_single_file(p_gGenFile_h, "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
+
+            // Gen C file include
+            safe_fprintf_single_file(p_gGenFile_c, "#include \"%s.h\"\n\n", mod->ModuleName);
+            safe_fprintf_single_file(p_gGenFile_c, "\n");
+        }
+
+#endif
 		TQ_FOR(arg->expr, &(mod->members), next) {
 			if(asn1_lang_map[arg->expr->meta_type]
 				[arg->expr->expr_type].type_cb) {
@@ -74,6 +163,28 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 					return -1;
 			}
 		}
+
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+
+        if (IsModuleValid)
+        {
+            safe_fprintf_single_file(p_gGenFile_h, "\n#ifdef __cplusplus\n}\n#endif\n");
+            safe_fprintf_single_file(p_gGenFile_h, "\n#endif\t/* _%s_H_ */\n", pHeaderGuard);
+            free(pHeaderGuard);
+            if (NULL != p_gGenFile_h)
+            {
+                fclose(p_gGenFile_h);
+                p_gGenFile_h = NULL;
+            }
+
+            if (NULL != p_gGenFile_c)
+            {
+                fclose(p_gGenFile_c);
+                p_gGenFile_c = NULL;
+            }
+            IsModuleValid = 0;
+        }
+#endif
 	}
 
 	/*
@@ -260,10 +371,19 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
 	out_chunk_t *ot;
 	FILE *fp_c, *fp_h;
 	char *tmpname_c, *tmpname_h;
-	char *name_buf;
 	char *header_id;
 	const char *c_retained = "";
 	const char *h_retained = "";
+
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+    FILE *fp_c_dst, *fp_h_dst;
+	char *name_buf_h;
+	char *name_buf_c;
+    unsigned char buf[4096];
+    size_t len;
+#else
+	char *name_buf;
+#endif
 
 	if(cs == NULL) {
 		safe_fprintf(stderr, "Cannot compile %s at line %d\n",
@@ -279,6 +399,7 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
 		return -1;
 	}
 
+#ifndef SUPPORT_GEN_TO_SINGLE_FILE
 	generate_preamble(arg, fp_c, optc, argv);
 	generate_preamble(arg, fp_h, optc, argv);
 
@@ -289,7 +410,9 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
 		"\n", header_id, header_id);
 
 	safe_fprintf(fp_h, "\n");
+
 	HINCLUDE("asn_application.h");
+#endif
 
 #define	SAVE_STREAM(fp, idx, msg, actdep)	do {			\
 	if(TQ_FIRST(&(cs->destination[idx].chunks)) && *msg)		\
@@ -300,6 +423,118 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
 	}								\
 } while(0)
 
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+	//SAVE_STREAM(fp_h, OT_INCLUDES,	"Including external dependencies", 1);
+	SAVE_STREAM(fp_h, OT_INCLUDES,	"", 1);
+
+	safe_fprintf(fp_h, "/******  %s Definition Start *****/\n", expr->Identifier);
+	//safe_fprintf(fp_h, "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
+	SAVE_STREAM(fp_h, OT_DEPS,	"Dependencies", 0);
+	SAVE_STREAM(fp_h, OT_FWD_DECLS,	"Forward declarations", 0);
+	SAVE_STREAM(fp_h, OT_FWD_DEFS,	"Forward definitions", 0);
+	SAVE_STREAM(fp_h, OT_TYPE_DECLS, expr->Identifier, 0);
+	SAVE_STREAM(fp_h, OT_FUNC_DECLS,"Implementation", 0);
+	//safe_fprintf(fp_h, "\n#ifdef __cplusplus\n}\n#endif\n");
+
+	if(!(arg->flags & A1C_NO_INCLUDE_DEPS))
+	SAVE_STREAM(fp_h, OT_POST_INCLUDE, "Referred external types", 1);
+
+	//safe_fprintf(fp_h, "\n#endif\t/* _%s_H_ */\n", header_id);
+
+	//HINCLUDE("asn_internal.h");
+	safe_fprintf(fp_h, "\n/******  %s Definition End *****/\n", expr->Identifier);
+    
+    /* In C file generation stage.*/
+	//safe_fprintf(fp_c, "#include \"%s.h\"\n\n", expr->Identifier);
+	safe_fprintf(fp_c, "/******  %s Implement Start *****/\n", expr->Identifier);
+	//if(arg->flags & A1C_NO_INCLUDE_DEPS)
+	//	SAVE_STREAM(fp_c, OT_POST_INCLUDE, "", 1);
+
+	TQ_FOR(ot, &(cs->destination[OT_CTABLES].chunks), next)
+		safe_fwrite(ot->buf, ot->len, 1, fp_c);
+	TQ_FOR(ot, &(cs->destination[OT_CODE].chunks), next)
+		safe_fwrite(ot->buf, ot->len, 1, fp_c);
+	TQ_FOR(ot, &(cs->destination[OT_CTDEFS].chunks), next)
+		safe_fwrite(ot->buf, ot->len, 1, fp_c);
+	TQ_FOR(ot, &(cs->destination[OT_STAT_DEFS].chunks), next)
+		safe_fwrite(ot->buf, ot->len, 1, fp_c);
+
+	safe_fprintf(fp_c, "/******  %s Implement End *****/\n\n", expr->Identifier);
+
+	assert(OT_MAX == 12);	/* Protection from reckless changes */
+
+
+	fclose(fp_c);
+	fclose(fp_h);
+
+
+	name_buf_c = alloca(strlen(expr->Identifier) + 3);
+	name_buf_h = alloca(strlen(expr->Identifier) + 3);
+
+	sprintf(name_buf_c, "%s.c", expr->Identifier);
+	if(identical_files(name_buf_c, tmpname_c)) {
+		c_retained = " (contents unchanged)";
+		unlink(tmpname_c);
+	} else {
+		if(rename(tmpname_c, name_buf_c)) {
+			unlink(tmpname_c);
+			perror(tmpname_c);
+			free(tmpname_c);
+			free(tmpname_h);
+			return -1;
+		}
+	}
+
+	sprintf(name_buf_h, "%s.h", expr->Identifier);
+	if(identical_files(name_buf_h, tmpname_h)) {
+		h_retained = " (contents unchanged)";
+		unlink(tmpname_h);
+	} else {
+		if(rename(tmpname_h, name_buf_h)) {
+			unlink(tmpname_h);
+			perror(tmpname_h);
+			free(tmpname_c);
+			free(tmpname_h);
+			return -1;
+		}
+	}
+
+	free(tmpname_c);
+	free(tmpname_h);
+
+    fp_h = fopen(name_buf_h, "r");
+    fp_c = fopen(name_buf_c, "r");
+    // Copy generated file to one.
+    //fp_c_dst = asn1c_construct_file_name(arg->expr->module->ModuleName, ".c");
+    //fp_h_dst = asn1c_construct_file_name(arg->expr->module->ModuleName, ".h");
+
+    while(!feof(fp_h)) 
+    {
+        len = fread(buf, 1, sizeof(buf), fp_h);
+        if(safe_fwrite(buf, 1, len, p_gGenFile_h) != len) 
+        {
+            errno = EIO;
+            break;
+        }
+    }
+    
+    
+    while(!feof(fp_c)) 
+    {
+        len = fread(buf, 1, sizeof(buf), fp_c);
+        if(safe_fwrite(buf, 1, len, p_gGenFile_c) != len) 
+        {
+            errno = EIO;
+                break;
+         }
+     }
+ 
+	fclose(fp_c);
+	fclose(fp_h);
+	//fclose(fp_c_dst);
+	//fclose(fp_h_dst);
+
+#else
 	SAVE_STREAM(fp_h, OT_INCLUDES,	"Including external dependencies", 1);
 
 	safe_fprintf(fp_h, "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
@@ -366,12 +601,36 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
 	free(tmpname_c);
 	free(tmpname_h);
 
+#endif
+
 	safe_fprintf(stderr, "Compiled %s.c%s\n",
 		expr->Identifier, c_retained);
 	safe_fprintf(stderr, "Compiled %s.h%s\n",
 		expr->Identifier, h_retained);
 	return 0;
 }
+
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+static int
+generate_preamble_with_fprintf(asn1p_expr_t	*expr, FILE *fp, int optc, char **argv) {
+	fprintf(fp,
+	"/*\n"
+	" * Generated by asn1c-" VERSION " (http://lionet.info/asn1c)\n"
+	" * From ASN.1 module \"%s\"\n"
+	" * \tfound in \"%s\"\n",
+		expr->module->ModuleName,
+		expr->module->source_file_name);
+	if(optc > 1) {
+		int i;
+		fprintf(fp, " * \t`asn1c ");
+		for(i = 1; i < optc; i++)
+			fprintf(fp, "%s%s", i>1?" ":"", argv[i]);
+		fprintf(fp, "`\n");
+	}
+	fprintf(fp, " */\n\n");
+	return 0;
+}
+#endif
 
 static int
 generate_preamble(arg_t *arg, FILE *fp, int optc, char **argv) {

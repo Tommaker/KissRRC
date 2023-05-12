@@ -39,6 +39,29 @@ int mkstemp(char *template) {
 #define	mkstemp(foo)	mkstemps(foo, 0)
 #endif
 
+
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+FILE *asn1c_construct_file_name(const char *name, const char *ext)
+{
+    char *fname;
+    size_t len;
+    FILE *fp;
+    int ret;
+
+    len = strlen(name) + strlen(ext) + 2;
+    fname = alloca(len);
+    ret = snprintf(fname, len, "%s%s", name, ext);
+    assert(ret > 0 && ret < (ssize_t)len);
+
+    fp = fopen(fname, "a+");
+    if (NULL == fp)
+    {
+        fprintf(stderr, "%s: Not a regular file\n", fname);
+    }
+    return fp;
+}
+#endif
+
 FILE *
 asn1c_open_file(const char *name, const char *ext, char **opt_tmpname) {
 	int created = 1;

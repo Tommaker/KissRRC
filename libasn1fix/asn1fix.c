@@ -1,5 +1,6 @@
 #include "asn1fix_internal.h"
 #include "asn1fix.h"
+#define SUPPORT_GEN_TO_SINGLE_FILE
 
 /* Print everything to stderr */
 static void _default_error_logger(int _severity, const char *fmt, ...);
@@ -529,8 +530,14 @@ asn1f_check_duplicate(arg_t *arg) {
 
 static int
 asn1f_apply_unique_index(arg_t *arg) {
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+	static int unique_index = 0;
+    /* Modified by leo: Not to reset unique_index for avoid name conflict.*/
+	if(!arg) { /* unique_index = 0;*/ return 0; }
+#else
 	static int unique_index;
 	if(!arg) { unique_index = 0; return 0; }
+#endif
 
 	arg->expr->_type_unique_index = ++unique_index;
 

@@ -10,6 +10,9 @@
 FILE *asn1c_open_file(const char *base_part, const char *extension,
 	char **opt_tmpname);
 
+#ifdef SUPPORT_GEN_TO_SINGLE_FILE
+FILE *asn1c_construct_file_name(const char *name, const char *ext);
+#endif
 /*
  * Obtain base name and directory name of a path.
  * Some systems have them in <libgen.h> as dirname(3) and basename(3).
