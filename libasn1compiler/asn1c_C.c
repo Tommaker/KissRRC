@@ -2523,9 +2523,9 @@ emit_member_table(arg_t *arg, asn1p_expr_t *expr) {
 		OUT("\"%s\"\n", expr->Identifier);
 	}
 #else
-    // Wrapped with _DEBUG_MODE_
+    // Wrapped with _ASN1_DEBUG_MODE_
     INDENT(-2);
-    OUT("#ifdef _DEBUG_MODE_\n");
+    OUT("#ifdef _ASN1_DEBUG_MODE_\n");
     INDENT(+2);
 	if(C99_MODE) OUT(".name = ");
 	if(expr->_anonymous_type && !strcmp(expr->Identifier, "Member")) {
@@ -2609,7 +2609,7 @@ emit_type_DEF(arg_t *arg, asn1p_expr_t *expr, enum tvm_compat tv_mode, int tags_
     }
 #else
     INDENT(-1);
-    OUT("#ifdef _DEBUG_MODE_\n");
+    OUT("#ifdef _ASN1_DEBUG_MODE_\n");
     INDENT(+1);
     if(expr->_anonymous_type) {
         p = ASN_EXPR_TYPE2STR(expr->expr_type);
