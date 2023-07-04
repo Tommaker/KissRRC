@@ -221,9 +221,12 @@ asn1p_expr_add(asn1p_expr_t *to, asn1p_expr_t *what) {
 void
 asn1p_expr_add_many(asn1p_expr_t *to, asn1p_expr_t *from_what) {
 	asn1p_expr_t *expr;
+    static int extension_unique_index = 0;
 	TQ_FOR(expr, &(from_what->members), next) {
         expr->parent_expr = to;
+        expr->_ext_unique_index = extension_unique_index;
     }
+    extension_unique_index++;
 	TQ_CONCAT(&(to->members), &(from_what->members), next);
 }
 

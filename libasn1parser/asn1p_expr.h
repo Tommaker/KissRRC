@@ -260,6 +260,7 @@ typedef struct asn1p_expr_s {
 	int _anonymous_type;	/* This type is unnamed */
 	int _type_unique_index;	/* A per top-level-type unique index */
 	int _type_referenced;	/* This type is referenced from another place */
+    int _ext_unique_index;   /* Extension index, all member in one extension[[ a,b]] with same ext_unique_index */
 
 	/*
 	 * Opaque data may be attached to this structure,

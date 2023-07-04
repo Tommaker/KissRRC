@@ -2407,6 +2407,21 @@ emit_member_table(arg_t *arg, asn1p_expr_t *expr) {
 		(expr->marker.flags & EM_INDIRECT)?"ATF_POINTER":"ATF_NOFLAGS");
 	if((expr->marker.flags & EM_OMITABLE) == EM_OMITABLE) {
 		asn1p_expr_t *tv;
+        int opts = 1;
+        int prev_ext_idx = expr->_ext_unique_index;
+        for(tv = expr;
+                tv && (tv->marker.flags & EM_OMITABLE) == EM_OMITABLE;
+                tv = TQ_NEXT(tv, next)) {
+            if (prev_ext_idx != tv->_ext_unique_index)
+            {
+                prev_ext_idx = tv->_ext_unique_index;
+                opts++;
+            }
+            //if (tv->expr_type == A1TC_EXTENSIBLE) {
+            //    opts--;
+            //}
+        }
+#if 0
 		int opts = 0;
 		for(tv = expr;
 			tv && (tv->marker.flags & EM_OMITABLE) == EM_OMITABLE;
@@ -2414,6 +2429,7 @@ emit_member_table(arg_t *arg, asn1p_expr_t *expr) {
 			if(tv->expr_type == A1TC_EXTENSIBLE)
 				opts--;
 		}
+#endif
 		OUT("%d, ", opts);
 	} else {
 		OUT("0, ");
