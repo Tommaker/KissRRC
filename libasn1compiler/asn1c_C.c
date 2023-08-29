@@ -200,7 +200,7 @@ asn1c_lang_C_type_common_INTEGER(arg_t *arg) {
 			OUT("\t/* This list is extensible */\n");
 		OUT("};\n");
 
-		OUT("static const unsigned int asn_MAP_%s_enum2value_%d[] = {\n",
+		OUT("static const uint8_t asn_MAP_%s_enum2value_%d[] = {\n",
 			MKID(expr), expr->_type_unique_index);
 		qsort(v2e, el_count, sizeof(v2e[0]), compar_enumMap_byName);
 		for(eidx = 0; eidx < el_count; eidx++) {
@@ -429,7 +429,7 @@ asn1c_lang_C_type_SEQUENCE_def(arg_t *arg) {
 			int elm = 0;
 			int comma = 0;
 			comp_mode = 0;
-			OUT("static const int asn_MAP_%s_oms_%d[] = {",
+			OUT("static const uint8_t asn_MAP_%s_oms_%d[] = {",
 				MKID(expr),
 				expr->_type_unique_index);
 			TQ_FOR(v, &(expr->members), next) {
@@ -1371,8 +1371,8 @@ asn1c_lang_C_type_SIMPLE_TYPE(arg_t *arg) {
   {
 	asn1p_expr_t *terminal = asn1f_find_terminal_type_ex(arg->asn, expr);
 	char *type_name = asn1c_type_name(arg, expr, TNF_SAFE);
-	OUT("td->free_struct    = asn_DEF_%s.free_struct;\n",    type_name);
 #ifndef SUPPORT_PER_ONLY
+	OUT("td->free_struct    = asn_DEF_%s.free_struct;\n",    type_name);
 	OUT("td->print_struct   = asn_DEF_%s.print_struct;\n",   type_name);
 	OUT("td->check_constraints = asn_DEF_%s.check_constraints;\n", type_name);
 	OUT("td->ber_decoder    = asn_DEF_%s.ber_decoder;\n",    type_name);
@@ -1412,6 +1412,7 @@ asn1c_lang_C_type_SIMPLE_TYPE(arg_t *arg) {
 	OUT("}\n");
 	OUT("\n");
 
+#ifndef SUPPORT_PER_ONLY
 	p = MKID(expr);
 	if(HIDE_INNER_DEFS) OUT("static ");
 	OUT("void\n");
@@ -1427,7 +1428,6 @@ asn1c_lang_C_type_SIMPLE_TYPE(arg_t *arg) {
 	OUT("}\n");
 	OUT("\n");
 
-#ifndef SUPPORT_PER_ONLY
 	p = MKID(expr);
 	if(HIDE_INNER_DEFS) OUT("static ");
 	OUT("int\n");
@@ -1549,8 +1549,8 @@ asn1c_lang_C_type_SIMPLE_TYPE(arg_t *arg) {
 			p, expr->_type_unique_index);
 	} else {
 		OUT("extern asn_TYPE_descriptor_t asn_DEF_%s;\n", p);
-        OUT("asn_struct_free_f %s_free;\n", p);
 #ifndef SUPPORT_PER_ONLY
+        OUT("asn_struct_free_f %s_free;\n", p);
 		OUT("asn_struct_print_f %s_print;\n", p);
 		OUT("asn_constr_check_f %s_constraint;\n", p);
 		OUT("ber_type_decoder_f %s_decode_ber;\n", p);
@@ -2656,8 +2656,8 @@ emit_type_DEF(arg_t *arg, asn1p_expr_t *expr, enum tvm_compat tv_mode, int tags_
 	OUT("_" #foo ",\n");				\
 } while(0)
 
-		FUNCREF(free);
 #ifndef SUPPORT_PER_ONLY
+		FUNCREF(free);
 		FUNCREF(print);
 		FUNCREF(constraint);
 		FUNCREF(decode_ber);
