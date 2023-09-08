@@ -2168,15 +2168,18 @@ emit_member_PER_constraints(arg_t *arg, asn1p_expr_t *expr, const char *pfx) {
 			return -1;
 		asn1constraint_range_free(range);
 	}
-	OUT(",\n");
 
+	OUT(",\n");
 	range = asn1constraint_compute_PER_range(etype,
 			expr->combined_constraints, ACT_CT_SIZE, 0, 0, 0);
 	if(emit_single_member_PER_constraint(arg, range, 0, "SIZE"))
 		return -1;
 	asn1constraint_range_free(range);
-	OUT(",\n");
 
+#ifdef SUPPORT_PER_ONLY
+	OUT("\n");
+#else
+	OUT(",\n");
 	if((etype & ASN_STRING_KM_MASK) && (expr->_mark & TM_PERFROMCT)) {
 		int old_target = arg->target->target;
 		REDIR(OT_CODE);
@@ -2215,6 +2218,7 @@ emit_member_PER_constraints(arg_t *arg, asn1p_expr_t *expr, const char *pfx) {
 	} else {
 		OUT("0, 0\t/* No PER value map */\n");
 	}
+#endif
 
 	INDENT(-1);
 
