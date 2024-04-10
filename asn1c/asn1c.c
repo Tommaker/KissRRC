@@ -33,6 +33,7 @@
 
 #undef COPYRIGHT
 #define COPYRIGHT "Copyright (c) 2003-2017 Lev Walkin <vlm@lionet.info> and contributors.\n"
+#define COPYRIGHT_ESWIN "Copyright (c) 2023-2028 liuyongqi <liuyongqi@eswincomputing.com> and contributors.\n"
 
 #include <asn1parser.h>   /* Parse the ASN.1 file and build a tree */
 #include <asn1fix.h>      /* Fix the ASN.1 tree */
@@ -437,7 +438,7 @@ importStandardModules(asn1p_t *asn, const char *skeletons_dir) {
  * Print the usage screen and exit(EX_USAGE).
  */
 static void
-usage(const char *av0) {
+usage_bak(const char *av0) {
     /* clang-format off */
 	fprintf(stderr,
 "ASN.1 Compiler, v" VERSION "\n" COPYRIGHT
@@ -477,6 +478,51 @@ usage(const char *av0) {
 
 "  -print-class-matrix   Print out the collected object class matrix (debug)\n"
 "  -print-constraints    Explain subtype constraints (debug)\n"
+"  -print-lines          Generate \"-- #line\" comments in -E output\n"
+
+	,
+	a1c_basename(av0), DATADIR);
+    /* clang-format on */
+    exit(EX_USAGE);
+}
+
+/*
+ * Print the usage screen and exit(EX_USAGE).
+ */
+static void
+usage(const char *av0) {
+    /* clang-format off */
+	fprintf(stderr,
+/*"ASN.1 Compiler, v" VERSION "\n" COPYRIGHT_ESWIN*/
+"ASN.1 Compiler, V1.1\n" COPYRIGHT_ESWIN
+"Usage: %s [options] file ...\n"
+"Options:\n"
+"  -E                    Run only the ASN.1 parser and print out the tree\n"
+"  -F                    During -E operation, also perform tree fixing\n"
+"\n"
+"  -P                    Concatenate and print the compiled text\n"
+"  -R                    Restrict output (tables only, no support code)\n"
+"  -S <dir>              Directory with support (skeleton?) files\n"
+"                        (Default is \"%s\")\n"
+"  -X                    Generate and print the XML DTD\n"
+"\n"
+
+"\n"
+
+"  -fcompound-names      Disambiguate C's struct NAME's inside top-level types\n"
+"  -fincludes-quoted     Generate #includes in \"double\" instead of <angle> quotes\n"
+"  -fknown-extern-type=<name>    Pretend the specified type is known\n"
+"  -fline-refs           Include ASN.1 module's line numbers in comments\n"
+"  -fno-constraints      Do not generate constraint checking code\n"
+"  -fno-include-deps     Do not generate courtesy #includes for dependencies\n"
+"  -funnamed-unions      Enable unnamed unions in structures\n"
+"  -fwide-types          Use INTEGER_t instead of \"long\" by default, etc.\n"
+"\n"
+
+"  -gen-PER              Generate PER support code\n"
+"  -pdu={all|auto|Type}  Generate PDU table (discover PDUs automatically)\n"
+"\n"
+
 "  -print-lines          Generate \"-- #line\" comments in -E output\n"
 
 	,
