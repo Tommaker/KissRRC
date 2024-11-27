@@ -1,0 +1,2 @@
+在asn1c生成的众多.h目录中，执行dir *.h > AllNRHdr.h， 并将AllNRHdr.h中的AllNRHdr.h和NR-RRC-Definitions.h删去（避免重复包含)
+在py脚本中指定AllNRHdr.h所在的路径，设置生成的文件名称，执行即可得到NR-RRC-Definitions.h更新后的文件，与NR-RRC-Definitions.c搭配使用。
