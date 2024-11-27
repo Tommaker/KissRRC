@@ -383,6 +383,7 @@ asn1c_lang_C_type_SEQUENCE_def(arg_t *arg) {
 	int roms_count;		/* Root optional members */
 	int aoms_count;		/* Additions optional members */
 	int saved_target = arg->target->target;
+    int extension_exist = 0;
 
 	/*
 	 * Fetch every inner tag from the tag to elements map.
@@ -397,6 +398,13 @@ asn1c_lang_C_type_SEQUENCE_def(arg_t *arg) {
 		GEN_DECLARE(expr);	/* asn_DEF_xxx */
 
 	REDIR(OT_STAT_DEFS);
+
+    TQ_FOR(v, &(expr->members), next) {
+			if(v->expr_type == A1TC_EXTENSIBLE) {
+                extension_exist = 1;
+                break;
+			}
+    }
 
 	/*
 	 * Print out the table according to which parsing is performed.
@@ -475,6 +483,12 @@ asn1c_lang_C_type_SEQUENCE_def(arg_t *arg) {
 		roms_count = 0;
 		aoms_count = 0;
 	}
+
+    // 若一个结构体中仅存在...的扩展，则ext_stop必须设置为1，否则会丢失1bit的扩展preamble
+    if ((1 ==extension_exist) && (ext_start < 0))
+    {
+        ext_stop = 1;
+    }
 
 #ifndef SUPPORT_PER_ONLY
 	/*
