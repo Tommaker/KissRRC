@@ -70,7 +70,7 @@ static const char *generate_pdu_C_definition(void);
 #include <unistd.h>
 
 #ifdef SUPPORT_GEN_TO_SINGLE_FILE
-FILE *p_gGenFile_h = NULL;
+//FILE *p_gGenFile_h = NULL; // header file should be add by dependency order, generate it by python script.
 FILE *p_gGenFile_c = NULL;
 
 
@@ -109,7 +109,7 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 #ifdef SUPPORT_GEN_TO_SINGLE_FILE
     asn1p_expr_t *pExpr;
     int IsModuleValid = 0;
-    char *pHeaderGuard = NULL;
+    //char *pHeaderGuard = NULL;
 #endif
 
     
@@ -128,27 +128,29 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
                 [pExpr->expr_type].type_cb) {
             IsModuleValid = 1;
             // Create all in one file:$Module.h and $Module.c
-            p_gGenFile_h = asn1c_construct_file_name(mod->ModuleName, ".h");
+            //p_gGenFile_h = asn1c_construct_file_name(mod->ModuleName, ".h");
             p_gGenFile_c = asn1c_construct_file_name(mod->ModuleName, ".c");
 
             // Add File start preamble.
-            generate_preamble_with_fprintf(pExpr, p_gGenFile_h, optc, argv);
+            //generate_preamble_with_fprintf(pExpr, p_gGenFile_h, optc, argv);
             generate_preamble_with_fprintf(pExpr, p_gGenFile_c, optc, argv);
 
             // Gen header file protect guard
-            pHeaderGuard = GenHeaderGuardString(mod->ModuleName);
+            //pHeaderGuard = GenHeaderGuardString(mod->ModuleName);
             // 1. Add header protct guard
+#if 0
             safe_fprintf_single_file(p_gGenFile_h,
                     "#ifndef\t_%s_H_\n"
                     "#define\t_%s_H_\n"
                     "\n", pHeaderGuard, pHeaderGuard);
+#endif
 
             //safe_fprintf_single_file(p_gGenFile_h, "\n");
 
             // 2. Inlcude a header file to include all ASN.1 lib header.
-            safe_fprintf_single_file(p_gGenFile_h, "#include \"asn1c_support_lib.h\"\n");
+            //safe_fprintf_single_file(p_gGenFile_h, "#include \"asn1c_support_lib.h\"\n");
             // 3. Add extern "C" wrapper
-            safe_fprintf_single_file(p_gGenFile_h, "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
+            //safe_fprintf_single_file(p_gGenFile_h, "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
 
             // Gen C file include
             safe_fprintf_single_file(p_gGenFile_c, "#include \"%s.h\"\n\n", mod->ModuleName);
@@ -168,6 +170,7 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
 
         if (IsModuleValid)
         {
+#if 0
             safe_fprintf_single_file(p_gGenFile_h, "\n#ifdef __cplusplus\n}\n#endif\n");
             safe_fprintf_single_file(p_gGenFile_h, "\n#endif\t/* _%s_H_ */\n", pHeaderGuard);
             free(pHeaderGuard);
@@ -176,6 +179,7 @@ asn1c_save_compiled_output(arg_t *arg, const char *datadir,
                 fclose(p_gGenFile_h);
                 p_gGenFile_h = NULL;
             }
+#endif
 
             if (NULL != p_gGenFile_c)
             {
@@ -508,6 +512,7 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
     //fp_c_dst = asn1c_construct_file_name(arg->expr->module->ModuleName, ".c");
     //fp_h_dst = asn1c_construct_file_name(arg->expr->module->ModuleName, ".h");
 
+#if 0
     while(!feof(fp_h)) 
     {
         len = fread(buf, 1, sizeof(buf), fp_h);
@@ -517,6 +522,7 @@ asn1c_save_streams(arg_t *arg, asn1c_fdeps_t *deps, int optc, char **argv) {
             break;
         }
     }
+#endif
     
     
     while(!feof(fp_c)) 
