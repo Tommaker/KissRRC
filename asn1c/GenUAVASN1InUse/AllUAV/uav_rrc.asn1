@@ -1,0 +1,191 @@
+
+SON-RRC-Definitions DEFINITIONS AUTOMATIC TAGS ::=
+
+BEGIN
+
+
+SON-BCCH-BCH-Message ::= SEQUENCE {
+    message                    SON-BCCH-BCH-MessageType
+}
+
+SON-BCCH-BCH-MessageType ::=    SonMasterInformationBlock
+
+
+
+SON-BCCH-TCH-Message ::= SEQUENCE {
+    message                 SON-BCCH-TCH-MessageType
+}
+
+SON-BCCH-TCH-MessageType ::= CHOICE {
+    c1 CHOICE {
+        sonsystemInformationBlockType1  SonSystemInformationBlockType1,
+        sonsystemInformationBlockType2  SonSystemInformationBlockType2,
+        spare5 NULL, 
+        spare4 NULL, 
+        spare3 NULL, 
+        spare2 NULL, 
+        spare1 NULL 
+    },
+    messageClassExtension SEQUENCE {}
+}
+
+SON-DCCH-TCH-Message ::= SEQUENCE {
+    message                 SON-DCCH-TCH-MessageType
+}
+
+SON-DCCH-TCH-MessageType ::= CHOICE {
+    c1 CHOICE {
+        sonRrcConnectionRequest         SonRRCConnectionRequest, 
+        sonRrcConnectionReject          SonRRCConnectionReject, 
+        sonRrcConnectionConfirm         SonRRCConnectionConfirm,
+        spare5 NULL,
+        spare4 NULL, 
+        spare3 NULL, 
+        spare2 NULL, 
+        spare1 NULL 
+    },
+    messageClassExtension SEQUENCE {}
+}
+
+SonMasterInformationBlock ::= SEQUENCE {
+    bandwidth                       ENUMERATED {n6, n15, n25, n50, n75, n100},
+    systemFrameNumber               BIT STRING (SIZE (10)),
+    transmissionMode                ENUMERATED {tm0, tm1, tm2, tm3},
+    version                         BIT STRING (SIZE (3)),
+    currntNodeId                    INTEGER (0..31),
+    totalNodeNum                    INTEGER (1..32),
+    antennaPortNum                  ENUMERATED     {ap1, ap2, ap4},
+    txPower                         INTEGER     (-40..50),
+    macI                            BIT STRING     (SIZE (10)),
+    sonId                           INTEGER        (0..7),
+    nonCriticalExtension            SEQUENCE {} OPTIONAL
+}
+
+SonRRCConnectionConfirm ::= SEQUENCE {
+    criticalExtensions CHOICE {
+        c1 CHOICE {
+            rrcConnectionConfirm     SonRRCConnectionConfirm-IEs,
+            spare NULL
+        },
+        
+        criticalExtensionsFuture     SEQUENCE {}
+    } 
+}
+
+SonRRCConnectionConfirm-IEs ::= SEQUENCE {
+    occupiedRF                      INTEGER (0..31),
+    accessingNodeAddress            NodeAddressIdentity,
+    accessedNodeAddress             NodeAddressIdentity,
+    nonCriticalExtension            SEQUENCE {} OPTIONAL
+}
+
+SonRRCConnectionReject ::= SEQUENCE {
+    criticalExtensions CHOICE {
+        c1 CHOICE {
+            rrcConnectionReject     SonRRCConnectionReject-IEs,
+            spare                   NULL
+        },
+        criticalExtensionsFuture     SEQUENCE {}
+    } 
+}
+
+SonRRCConnectionReject-IEs ::= SEQUENCE {
+    accessingNodeAddress            NodeAddressIdentity,
+    accessedNodeAddress             NodeAddressIdentity,
+    rejectCause                     ENUMERATED {congestion, spare7, spare6, spare5, spare4, spare3, spare2, spare1},
+    nonCriticalExtension            SEQUENCE {} OPTIONAL -- Need OP
+}
+
+SonRRCConnectionRequest ::= SEQUENCE {
+    criticalExtensions CHOICE {
+        sonrrcConnectionRequest         SonRRCConnectionRequest-IEs,
+        criticalExtensionsFuture        SEQUENCE {}
+    } 
+}
+
+SonRRCConnectionRequest-IEs ::= SEQUENCE {
+    pre-occupiedRF                  INTEGER (0..31),
+    accessingNodeAddress            NodeAddressIdentity,
+    accessedNodeAddress             NodeAddressIdentity,
+    nonCriticalExtension            SEQUENCE {} OPTIONAL -- Need OP
+}
+
+SonRRCConnectionReconfigurationRequest ::= SEQUENCE {
+    criticalExtensions CHOICE {
+        sonrrcConnectionReconfigurationRequest      SonRRCConnectionReconfigurationRequest-IEs,
+        criticalExtensionsFuture                    SEQUENCE {}
+    } 
+}
+
+SonRRCConnectionReconfigurationRequest-IEs ::= SEQUENCE {
+    freqInfo                        INTEGER (0..65535),
+    bandwidth                       ENUMERATED {n6, n15, n25, n50, n75, n100},
+    physCellId                      INTEGER (0..503),
+    activeTime                      ActiveTime,
+    nonCriticalExtension            SEQUENCE {} OPTIONAL -- Need OP
+}
+
+SonSystemInformationBlockType1 ::= SEQUENCE {
+    messageSequenceNumber           INTEGER (0..255),
+    messageSegmentType              ENUMERATED {notLastSegment, lastSegment},
+    messageSegmentNumber            INTEGER (0..63), 
+    nodeRouteInformation            NodeRouteInformation,
+    nonCriticalExtension            SEQUENCE {} OPTIONAL -- Need OP
+}
+
+SonSystemInformationBlockType2 ::= SEQUENCE {
+    ssfnCycle                           INTEGER (0..65535),
+    currentNodeId                       INTEGER (0..31), 
+    messageSequenceNumber               INTEGER (0..255),
+    currentNodeLeaveIndication          ENUMERATED {false,true},
+    subnetInfo                          SubnetInfo,
+    currentNodeAddress                  NodeAddressIdentity,
+    mainNodeAddress                     NodeAddressIdentity,
+    occupiedRadioFrameList              OccupiedRadioFrameList OPTIONAL,
+    nonCriticalExtension                SEQUENCE {} OPTIONAL
+}
+
+OccupiedRadioFrameList ::= SEQUENCE (SIZE(maxTotalNodeNum)) OF OccupiedPerRadioFrame
+
+OccupiedPerRadioFrame ::= SEQUENCE{
+    fixedOccupiedPerRadioFrame          FixedOccupiedPerRadioFrame OPTIONAL,
+    dynamicOccupiedPerRadioFrame        DynamicOccupiedPerRadioFrame OPTIONAL
+}
+
+FixedOccupiedPerRadioFrame ::= SEQUENCE{
+    metric                      INTEGER (0..255),
+    parameter                   Parameter OPTIONAL, -- Cond CurNode or One Hop Node
+    nodeSN                      OCTET STRING (SIZE(4))
+}
+
+Parameter ::= SEQUENCE{
+    dataArrivalRate INTEGER (0..65535)
+}
+
+DynamicOccupiedPerRadioFrame ::= SEQUENCE{
+    nodeId                      INTEGER (0..31),
+    conflictIndication          ENUMERATED {false,true}
+}
+
+NodeRouteInformation ::= SEQUENCE {
+    nodeRouteInfo             OCTET STRING
+}
+
+ActiveTime ::= SEQUENCE{
+    ssfnCycle                   INTEGER (0..65535),
+    ssfn                        INTEGER (0..10239)
+}
+
+NodeAddressIdentity ::= SEQUENCE{
+    nodeSN                     OCTET STRING (SIZE(4))
+}
+
+SubnetInfo ::= SEQUENCE{
+    physCellId                  INTEGER (0..503),
+    subnetFreq                  INTEGER (0..65535),
+    leaveTime                   ActiveTime OPTIONAL
+}
+
+maxTotalNodeNum INTEGER ::= 32 -- Maximum node sum for SON.
+
+END

@@ -1,0 +1,88 @@
+ASN_MODULE_SOURCES=	\
+	SON-BCCH-BCH-Message.c	\
+	SON-BCCH-BCH-MessageType.c	\
+	SON-BCCH-TCH-Message.c	\
+	SON-BCCH-TCH-MessageType.c	\
+	SON-DCCH-TCH-Message.c	\
+	SON-DCCH-TCH-MessageType.c	\
+	SonMasterInformationBlock.c	\
+	SonRRCConnectionConfirm.c	\
+	SonRRCConnectionConfirm-IEs.c	\
+	SonRRCConnectionReject.c	\
+	SonRRCConnectionReject-IEs.c	\
+	SonRRCConnectionRequest.c	\
+	SonRRCConnectionRequest-IEs.c	\
+	SonRRCConnectionReconfigurationRequest.c	\
+	SonRRCConnectionReconfigurationRequest-IEs.c	\
+	SonSystemInformationBlockType1.c	\
+	SonSystemInformationBlockType2.c	\
+	OccupiedRadioFrameList.c	\
+	OccupiedPerRadioFrame.c	\
+	FixedOccupiedPerRadioFrame.c	\
+	Parameter.c	\
+	DynamicOccupiedPerRadioFrame.c	\
+	NodeRouteInformation.c	\
+	ActiveTime.c	\
+	NodeAddressIdentity.c	\
+	SubnetInfo.c
+
+ASN_MODULE_HEADERS=	\
+	SON-BCCH-BCH-Message.h	\
+	SON-BCCH-BCH-MessageType.h	\
+	SON-BCCH-TCH-Message.h	\
+	SON-BCCH-TCH-MessageType.h	\
+	SON-DCCH-TCH-Message.h	\
+	SON-DCCH-TCH-MessageType.h	\
+	SonMasterInformationBlock.h	\
+	SonRRCConnectionConfirm.h	\
+	SonRRCConnectionConfirm-IEs.h	\
+	SonRRCConnectionReject.h	\
+	SonRRCConnectionReject-IEs.h	\
+	SonRRCConnectionRequest.h	\
+	SonRRCConnectionRequest-IEs.h	\
+	SonRRCConnectionReconfigurationRequest.h	\
+	SonRRCConnectionReconfigurationRequest-IEs.h	\
+	SonSystemInformationBlockType1.h	\
+	SonSystemInformationBlockType2.h	\
+	OccupiedRadioFrameList.h	\
+	OccupiedPerRadioFrame.h	\
+	FixedOccupiedPerRadioFrame.h	\
+	Parameter.h	\
+	DynamicOccupiedPerRadioFrame.h	\
+	NodeRouteInformation.h	\
+	ActiveTime.h	\
+	NodeAddressIdentity.h	\
+	SubnetInfo.h
+
+ASN_CONVERTER_SOURCES+=pdu_collection.c
+
+
+lib_LTLIBRARIES=libsomething.la
+libsomething_la_SOURCES=$(ASN_MODULE_SOURCES) $(ASN_MODULE_HEADERS)
+
+# This file may be used as an input for make(3)
+# Remove the lines below to convert it into a pure .am file
+TARGET = progname
+CFLAGS += -DASN_PDU_COLLECTION -I.
+OBJS=${ASN_MODULE_SOURCES:.c=.o} ${ASN_CONVERTER_SOURCES:.c=.o}
+
+all: $(TARGET)
+
+$(TARGET): ${OBJS}
+	$(CC) $(CFLAGS) -o $(TARGET) ${OBJS} $(LDFLAGS) $(LIBS)
+
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+.c.o:
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+clean:
+	rm -f $(TARGET)
+	rm -f $(OBJS)
+
+regen: regenerate-from-asn1-source
+
+regenerate-from-asn1-source:
+	./asn1c -Wdebug-compiler -fcompound-names -fincludes-quoted -fno-include-deps -gen-PER -pdu=auto uav_rrc.asn1
+
